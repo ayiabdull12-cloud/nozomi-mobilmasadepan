@@ -1,0 +1,13 @@
+WARUNGRAYA — VERSI PERANGKAT
+
+1. Unduh WarungRaya.html ke komputer dan buka dengan Chrome, Edge, atau Firefox.
+2. Aplikasi dapat digunakan tanpa server dan tanpa internet setelah berkas diunduh.
+3. Buka Pengaturan, ubah identitas warung, lalu hapus data contoh ketika siap memakai data sendiri.
+4. Tambahkan barang, gunakan kasir, catat keuangan, dan lihat laporan. QRIS manual dicatat setelah pembayaran benar-benar diterima.
+5. Unduh cadangan JSON dari Pengaturan secara berkala. Gunakan Pulihkan cadangan JSON untuk pindah perangkat.
+
+Data disimpan di browser perangkat ini, bukan akun online. Menghapus data browser, memakai mode privat, mengganti browser/profil, atau memindahkan berkas dapat menyebabkan data tidak tersedia. Gunakan browser biasa dan buat cadangan. Di HP, membuka HTML lokal bergantung pada kemampuan browser/manajer berkas; bila tidak bisa dijalankan, gunakan versi server atau komputer.
+
+Versi ini tidak memerlukan kunci Midtrans dan tidak menyediakan QRIS otomatis. Versi server di repositori sudah menyiapkan integrasi Midtrans, yang memerlukan konfigurasi aman dan alamat HTTPS. Jangan memasukkan Server Key ke berkas HTML.
+
+Ini adalah aplikasi mandiri siap dijalankan dari berkas, bukan deployment website publik.
