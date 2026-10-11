@@ -1,0 +1,12 @@
+AYNETPREMIUM — VERSI PERANGKAT
+
+1. Ekstrak ZIP dan buka Aynetpremium.html menggunakan Chrome/Edge di komputer.
+2. Ini versi perangkat untuk mencoba toko dan panel pemilik, bukan website publik. Data hanya tersimpan di browser/perangkat ini. Pesanan tidak dikirim ke perangkat lain.
+3. Klik Kelola toko, masuk menggunakan kata sandi contoh: demo-toko.
+4. Pengaturan sudah berisi nama Aynetpremium dan nomor DANA 085156840563. Isi nama penerima DANA sesuai aplikasi, lalu unggah gambar QRIS resmi milik Anda. Semua dapat diubah.
+5. Tambah produk dengan nama, kategori, harga modal/jual, stok, gambar, dan tautan. Hapus data contoh setelah membuat cadangan bila perlu.
+6. Pelanggan membuat pesanan dan mengirim keterangan/bukti pembayaran. Konfirmasi lunas dari panel hanya setelah dana benar-benar masuk. Bukti bukan konfirmasi otomatis.
+7. Keuangan berisi penjualan lunas, pemasukan/pengeluaran manual, laba rugi, grafik, dan ekspor CSV. Biaya transaksi, ongkir, pajak, dan biaya lain dicatat manual.
+8. Data browser dapat hilang saat dibersihkan, mode privat ditutup, atau berganti profil. Cadangkan JSON melalui Pengaturan.
+
+Untuk menerima pesanan dari pelanggan lain, gunakan versi server dengan database bersama dan alamat HTTPS; lihat ecommerce/PANDUAN.md pada paket kode. Tidak ada API key Midtrans atau DANA pada file ini. Jangan unggah file demo ke hosting sebagai toko sungguhan: data tiap pengunjung akan terpisah.

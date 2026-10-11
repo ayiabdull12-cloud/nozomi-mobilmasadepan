@@ -1,0 +1,17 @@
+FROM node:24.19.0-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY ecommerce ./ecommerce
+RUN npm run test:toko && npm run build:toko
+FROM node:24.19.0-bookworm-slim
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund && mkdir /data && chown node:node /data
+COPY --from=build /app/ecommerce/dist ./ecommerce/dist
+COPY ecommerce/server.js ecommerce/domain.js ./ecommerce/
+ENV SHOP_HOST=0.0.0.0 SHOP_PORT=3003 SHOP_DATABASE_PATH=/data/aynetpremium.sqlite SHOP_DEMO=false
+USER node
+EXPOSE 3003
+VOLUME ["/data"]
+CMD ["node", "ecommerce/server.js"]

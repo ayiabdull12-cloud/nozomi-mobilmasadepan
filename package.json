@@ -14,7 +14,13 @@
     "start": "node --env-file-if-exists=.env server/index.js",
     "test": "node --test tests/*.test.js",
     "test:e2e": "npm run build:portable && playwright test",
-    "build:portable": "node scripts/build-portable.mjs"
+    "build:portable": "node scripts/build-portable.mjs",
+    "dev:toko": "node ecommerce/scripts/dev.mjs",
+    "build:toko": "vite build --config ecommerce/vite.config.js",
+    "start:toko": "node --env-file-if-exists=ecommerce/.env ecommerce/server.js",
+    "test:toko": "node --test ecommerce/tests/*.test.js",
+    "test:toko:e2e": "playwright test --config ecommerce/playwright.config.js",
+    "build:toko-demo": "node ecommerce/scripts/build-demo.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
