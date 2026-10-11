@@ -1,3 +1,4 @@
+import { normalizeSettings } from './site.js';
 export class ShopError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
 const fail = message => { throw new ShopError(message); };
 export const id = () => crypto.randomUUID();
@@ -18,7 +19,7 @@ export function artwork(kind, color = '#e8d5ba') {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 290"><defs><radialGradient id="g"><stop stop-color="#fff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><filter id="s"><feGaussianBlur stdDeviation="7"/></filter></defs><rect width="320" height="290" fill="${color}"/><circle cx="145" cy="100" r="155" fill="url(#g)"/><ellipse cx="160" cy="240" rx="64" ry="10" fill="#3d342d" opacity=".12" filter="url(#s)"/>${drawings[kind] || drawings.coffee}</svg>`);
 }
 export function createSeed(demo = true) {
-  const state = { version: 1, settings: { name: 'Aynetpremium', tagline: 'Pilihan baik, untuk setiap hari.', description: 'Temukan barang favorit yang dibuat untuk menemani keseharian Anda. Dipilih dengan hati, dikirim dengan rapi.', owner: '', whatsapp: '', address: '', danaNumber: '085156840563', danaName: '', qrisImage: '', shippingFee: 15000, allowDelivery: true, demo }, products: [], orders: [], ledger: [] };
+  const state = { version: 1, settings: normalizeSettings({ name: 'Aynetpremium', tagline: 'Pilihan baik, untuk setiap hari.', description: 'Temukan barang favorit yang dibuat untuk menemani keseharian Anda. Dipilih dengan hati, dikirim dengan rapi.', owner: '', whatsapp: '', address: '', danaNumber: '085156840563', danaName: '', qrisImage: '', shippingFee: 15000, allowDelivery: true, demo }), products: [], orders: [], ledger: [] };
   if (demo) {
     const samples = [ ['Kopi Nusantara', 'Kopi & makanan', 85000, 52000, 'coffee', '#e1d0bc', 'Biji kopi pilihan dengan aroma cokelat dan rasa yang seimbang. Kemasan 250 gram.'], ['Everyday Tote', 'Aksesori', 69000, 35000, 'tote', '#e0e5d8', 'Tas kanvas serbaguna untuk kerja, belanja, dan akhir pekan. Ukuran 35 × 40 cm.'], ['Tumbler Sage', 'Rumah & gaya hidup', 129000, 79000, 'bottle', '#d9e1d3', 'Teman minum sehari-hari. Tumbler stainless 500 ml dengan tutup rapat.'], ['Pouch Terracotta', 'Aksesori', 49000, 23000, 'pouch', '#ecd8ce', 'Tempat kecil untuk barang penting Anda. Bahan kanvas dengan resleting.'], ['Mug Senja', 'Rumah & gaya hidup', 79000, 41000, 'mug', '#e5dfd0', 'Mug keramik 300 ml untuk menikmati jeda dan minuman favorit.'], ['Slow Days Candle', 'Rumah & gaya hidup', 99000, 54000, 'candle', '#e6d2b7', 'Lilin kedelai dengan aroma hangat untuk suasana rumah yang nyaman.'] ];
     state.products = samples.map(([name, category, price, cost, kind, color, description], i) => ({ id: id(), name, category, price, cost, stock: 20 + i * 3, description, image: artwork(kind, color), kind: 'physical', deliveryLink: '', revision: 0, link: '', active: true, featured: i < 3, createdAt: new Date().toISOString() }));
@@ -26,7 +27,7 @@ export function createSeed(demo = true) {
   return state;
 }
 const publicProduct = ({ cost, deliveryLink, ...product }) => product;
-export const catalog = state => ({ settings: state.settings, products: state.products.filter(p => p.active).map(publicProduct) });
+export const catalog = state => ({ settings: normalizeSettings(state.settings), products: state.products.filter(p => p.active).map(publicProduct) });
 const findOrder = (state, orderId) => state.orders.find(o => o.id === orderId) || fail('Pesanan tidak ditemukan.');
 const publicOrder = ({ token, cost, checkoutKey, checkoutSignature, ...order }) => ({ ...order, items: order.items.map(({ cost, deliveryLink, ...item }) => ({ ...item, ...(order.paymentStatus === 'paid' && deliveryLink ? { deliveryLink } : {}) })) });
 function cancel(state, order, reason) {
@@ -35,7 +36,7 @@ function cancel(state, order, reason) {
   for (const item of order.items) { const product = state.products.find(p => p.id === item.id); if (product) { product.stock += item.qty; product.revision = (product.revision || 0) + 1; } }
   order.paymentStatus = 'cancelled'; order.cancelReason = reason; order.updatedAt = new Date().toISOString();
 }
-export function expireOrders(state, now = Date.now()) { for (const order of state.orders) if (['pending', 'review'].includes(order.paymentStatus) && new Date(order.expiresAt).getTime() <= now) cancel(state, order, 'Batas pembayaran 24 jam berakhir.'); }
+export function expireOrders(state, now = Date.now()) { for (const order of state.orders) if (['pending', 'review'].includes(order.paymentStatus) && new Date(order.expiresAt).getTime() <= now) cancel(state, order, 'Batas pembayaran pesanan berakhir.'); }
 export function report(state, from = '0000-01-01', to = '9999-12-31') {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) fail('Rentang tanggal tidak valid.');
   const within = value => value >= from && value <= to;
@@ -53,6 +54,7 @@ export function report(state, from = '0000-01-01', to = '9999-12-31') {
   return { revenue, cost, expenses, otherIncome, gross: revenue - cost, net: revenue - cost + otherIncome - expenses, incoming, outgoing, cash: incoming - outgoing, paidCount: orders.length, entries, series: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)), best: [...best.values()].sort((a, b) => b.revenue - a.revenue) };
 }
 export function handle(state, method, path, body = {}, { admin = false } = {}) {
+  state.settings = normalizeSettings(state.settings);
   const parts = path.split('/').filter(Boolean);
   if (method === 'GET' && path === '/catalog') return catalog(state);
   if (method === 'GET' && parts[0] === 'order' && parts[1]) { const order = state.orders.find(o => o.token === parts[1]); if (!order) throw new ShopError('Pesanan tidak ditemukan.', 404); return publicOrder(order); }
@@ -60,21 +62,23 @@ export function handle(state, method, path, body = {}, { admin = false } = {}) {
     const checkoutKey = text(body.checkoutKey, 'Kode checkout', 36); if (!/^[0-9a-f-]{36}$/i.test(checkoutKey)) fail('Kode checkout tidak valid.');
     const checkoutSignature = JSON.stringify({ items: body.items, customer: body.customer, delivery: body.delivery, method: body.method });
     const existing = state.orders.find(o => o.checkoutKey === checkoutKey); if (existing) { if (existing.checkoutSignature !== checkoutSignature) fail('Isi pesanan berubah. Mulai checkout baru.'); return { ...publicOrder(existing), token: existing.token }; }
+    if (!state.settings.acceptOrders) fail(state.settings.closedMessage);
     if (!Array.isArray(body.items) || !body.items.length || body.items.length > 100) fail('Keranjang harus berisi 1–100 produk.');
     const customer = { name: text(body.customer?.name, 'Nama pembeli', 100), phone: text(body.customer?.phone, 'Nomor WhatsApp', 20), address: text(body.customer?.address, 'Alamat', 600, body.delivery === 'delivery'), note: text(body.customer?.note, 'Catatan', 500, false) };
     if (!/^\+?[0-9 ()-]{8,20}$/.test(customer.phone)) fail('Nomor WhatsApp tidak valid.');
+    if (body.items.some(i => !i || typeof i !== 'object' || typeof i.id !== 'string')) fail('Isi keranjang tidak valid.');
     const digitalOnly = body.items.every(i => state.products.find(p => p.id === i.id)?.kind === 'digital');
     if ((digitalOnly && body.delivery !== 'digital') || (!digitalOnly && body.delivery === 'digital')) fail('Pilihan pengiriman tidak sesuai jenis produk.');
     if (!['pickup', 'delivery', 'digital'].includes(body.delivery) || (body.delivery === 'delivery' && !state.settings.allowDelivery)) fail('Pilihan pengiriman tidak tersedia.');
     if (!['QRIS', 'DANA'].includes(body.method)) fail('Pilih QRIS atau DANA.');
-    if (body.method === 'QRIS' && !state.settings.qrisImage) fail('Pemilik toko belum memasang QRIS.');
-    if (body.method === 'DANA' && (!state.settings.danaNumber || !state.settings.danaName)) fail('Pemilik toko belum mengisi rekening DANA.');
+    if (body.method === 'QRIS' && (!state.settings.enableQRIS || !state.settings.qrisImage)) fail('Pemilik toko belum memasang QRIS.');
+    if (body.method === 'DANA' && (!state.settings.enableDANA || !state.settings.danaNumber || !state.settings.danaName)) fail('Pemilik toko belum mengisi rekening DANA.');
     const seen = new Set();
     const items = body.items.map(i => { if (seen.has(i.id)) fail('Produk ganda dalam keranjang.'); seen.add(i.id); const p = state.products.find(p => p.id === i.id && p.active); if (!p) fail('Produk sudah tidak tersedia.'); const qty = integer(i.qty, 'Jumlah produk', 1e6, 1); if (qty > p.stock) fail(`Stok ${p.name} hanya ${p.stock}.`); return { id: p.id, name: p.name, qty, price: p.price, cost: p.cost, image: p.image, kind: p.kind || 'physical', deliveryLink: p.deliveryLink || '' }; });
     const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0), cost = items.reduce((a, i) => a + i.qty * i.cost, 0), shipping = body.delivery === 'delivery' ? state.settings.shippingFee : 0;
     if (subtotal + shipping > 1e12 || cost > 1e12) fail('Total pesanan melebihi batas.');
     for (const i of items) { const p = state.products.find(p => p.id === i.id); p.stock -= i.qty; p.revision = (p.revision || 0) + 1; }
-    const now = new Date(), order = { checkoutKey, checkoutSignature, id: id(), token: id() + id(), number: `AY-${day(now).replaceAll('-', '')}-${id().slice(0, 6).toUpperCase()}`, customer, items, subtotal, shipping, total: subtotal + shipping, cost, method: body.method, delivery: body.delivery, paymentStatus: 'pending', fulfillment: 'baru', createdAt: now.toISOString(), updatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + 86400000).toISOString(), payment: { qrisImage: body.method === 'QRIS' ? state.settings.qrisImage : '', danaNumber: body.method === 'DANA' ? state.settings.danaNumber : '', danaName: body.method === 'DANA' ? state.settings.danaName : '' }, proof: '', paymentNote: '' };
+    const now = new Date(), order = { checkoutKey, checkoutSignature, id: id(), token: id() + id(), number: `AY-${day(now).replaceAll('-', '')}-${id().slice(0, 6).toUpperCase()}`, customer, items, subtotal, shipping, total: subtotal + shipping, cost, method: body.method, delivery: body.delivery, paymentStatus: 'pending', fulfillment: 'baru', createdAt: now.toISOString(), updatedAt: now.toISOString(), expiresAt: new Date(now.getTime() + state.settings.orderHoldHours * 3600000).toISOString(), payment: { qrisImage: body.method === 'QRIS' ? state.settings.qrisImage : '', danaNumber: body.method === 'DANA' ? state.settings.danaNumber : '', danaName: body.method === 'DANA' ? state.settings.danaName : '' }, proof: '', paymentNote: '' };
     state.orders.push(order); return { ...publicOrder(order), token: order.token };
   }
   if (method === 'POST' && parts[0] === 'order' && parts[2] === 'proof') {
@@ -93,6 +97,28 @@ export function handle(state, method, path, body = {}, { admin = false } = {}) {
     if (settings.danaNumber && !/^0[0-9]{8,14}$/.test(settings.danaNumber)) fail('Nomor DANA harus diawali 0 dan berisi 9–15 angka.');
     if (settings.whatsapp && !/^\+?[0-9]{8,16}$/.test(settings.whatsapp)) fail('Nomor WhatsApp toko tidak valid.');
     if (settings.qrisImage && !settings.qrisImage.startsWith('data:')) fail('QRIS harus diunggah sebagai gambar.');
+    const optionalText = (key, label, max) => text(body[key] ?? s[key], label, max, false);
+    Object.assign(settings, {
+      logoImage: image(body.logoImage ?? s.logoImage), bannerImage: image(body.bannerImage ?? s.bannerImage),
+      accentColor: optionalText('accentColor', 'Warna utama', 7),
+      storefrontLayout: body.storefrontLayout ?? s.storefrontLayout,
+      catalogColumns: integer(body.catalogColumns ?? s.catalogColumns, 'Kolom katalog', 4, 2),
+      announcement: optionalText('announcement', 'Pengumuman toko', 200),
+      closedMessage: optionalText('closedMessage', 'Pesan toko tutup', 300),
+      orderHoldHours: integer(body.orderHoldHours ?? s.orderHoldHours, 'Batas pembayaran (jam)', 168, 1),
+      seoTitle: optionalText('seoTitle', 'Judul pencarian Google', 160),
+      seoDescription: optionalText('seoDescription', 'Deskripsi pencarian Google', 320),
+      googleSiteVerification: optionalText('googleSiteVerification', 'Kode verifikasi Google', 300)
+    });
+    for (const key of ['acceptOrders', 'enableQRIS', 'enableDANA', 'allowIndexing']) {
+      if (body[key] !== undefined && typeof body[key] !== 'boolean') fail('Pengaturan pilihan tidak valid.');
+      settings[key] = body[key] ?? s[key];
+    }
+    if (!/^#[0-9a-f]{6}$/i.test(settings.accentColor)) fail('Warna utama harus memakai kode hex, misalnya #314d3b.');
+    if (!['catalog', 'hero'].includes(settings.storefrontLayout)) fail('Tampilan katalog tidak valid.');
+    if (settings.googleSiteVerification && !/^[a-zA-Z0-9_=-]+$/.test(settings.googleSiteVerification)) fail('Tempel kode verifikasi Google saja, tanpa tag HTML.');
+    if (settings.acceptOrders && !settings.enableQRIS && !settings.enableDANA) fail('Aktifkan minimal satu metode pembayaran saat menerima pesanan.');
+    settings.updatedAt = new Date().toISOString();
     state.settings = settings; return { ok: true };
   }
   if (parts[0] === 'admin' && parts[1] === 'products') {

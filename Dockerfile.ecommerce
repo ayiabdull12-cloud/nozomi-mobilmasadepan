@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund && mkdir /data && chown node:node /data
 COPY --from=build /app/ecommerce/dist ./ecommerce/dist
-COPY ecommerce/server.js ecommerce/domain.js ./ecommerce/
+COPY ecommerce/server.js ecommerce/domain.js ecommerce/site.js ecommerce/web.js ./ecommerce/
 ENV SHOP_HOST=0.0.0.0 SHOP_PORT=3003 SHOP_DATABASE_PATH=/data/aynetpremium.sqlite SHOP_DEMO=false
 USER node
 EXPOSE 3003
